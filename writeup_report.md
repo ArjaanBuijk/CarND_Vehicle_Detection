@@ -80,13 +80,13 @@ To check what it is doing, it is best to look at the full sequence of images pro
 
 The  process_image takes an rgb image, and calls the function find_cars, which was mostly taken as is from the course example, with addition of a heatmap thresholding logic to eliminate false positives.
 
-The nice thing about the find_cars function is that it extracts the HOG features for the entire image only once, and then loops over patches equal to the size of a sliding window. This makes the whole process much faster. My first implementation used an actual sliding window search, extracting the HOG features each time for the window, and the find_cars implementat was about 6x faster!
+The nice thing about the find_cars function is that it extracts the HOG features for the entire image only once, and then loops over patches equal to the size of a sliding window. This makes the whole process much faster. My first implementation used an actual sliding window search, extracting the HOG features each time for the window, and the find_cars implementation was about 6x faster!
 
 I tried different scales and different cells_per_step (which controls the overlap of patches), and settled on a scale of 1.5 and a cell_per_step of 2. That was giving me the best result and I could filter out almost every remaining false positive with a heatmap thresholding.
 
-The thresholding I created uses a class to store the hot-windows of images found. I am storing the hot-windows of 4 images, and each time a new image is stored, the oldest one is pushed out automatically. I am using a deque to accomplish this.
+The thresholding I created uses a class to store the hot-windows of the current and 3 previous images. I am storing the hot-windows of 4 images, and each time a new image is stored, the oldest one is pushed out automatically. I am using a deque to accomplish this.
 
-In code cell 7, the thresholding is done. I calculate the heatmap for the current and 3 previous images. (Note, this can be optimized, but I leave this for later...). Then, I require that for a pixel, for each heatmap, it must have a value larger than a threshold. I put the threshold to 1. This basically means that if a pixel is part of two overlapping car-windows, for 4 images in a row, it is accepted.
+In code cell 7, the thresholding is done. I calculate the heatmap for the current and 3 previous images. (Note, this can be optimized, but I leave this for later...). Then, I create a combined binary threshold from these heatmaps, by requiring that a pixel must have a value larger than a threshold in each subsequent heatmap. I put the threshold to 1. This  means that if a pixel is part of two overlapping car-windows, for 4 images in a row, it is accepted.
 
 After heatmap thresholding, the boxes to draw are found using the label function of the scipy.ndimage.measurements package.
 
@@ -94,7 +94,7 @@ After heatmap thresholding, the boxes to draw are found using the label function
 
 # 6. Summary
 
-The end result can be summarized as:
+The end result can be summarized as follows:
 
 - The classifier is able to detect the black car very good. 
 - The classifier detects the white car less robustly, but still quite good.
@@ -106,3 +106,5 @@ The main opportunities I see to make it even more robust against detection of fa
 
 - Further improve the classifier. Probably by using more or better training data for non-vehicles.
 - Further improve the heatmap thresholding. 
+
+And lastly, there is room for improvement to detect a larger bounding box for the full vehicle, while avoiding false positives.
