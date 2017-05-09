@@ -41,7 +41,7 @@ In code cell 2, there are some utility functions to plot images, and a function 
 
 The code to extract features from the images can be found in code cells 3.
 
-For the extraction of HOG features, I use the hog function of skimage.feature. This function is nicely described in the scikit-image documentation ([<b>hog</b>](http://scikit-image.org/docs/dev/auto_examples/features_detection/plot_hog.htmlb)). 
+For the extraction of HOG features, I use the hog function of skimage.feature. This function is nicely described in the scikit-image documentation ([<b>hog</b>](http://scikit-image.org/docs/dev/auto_examples/features_detection/plot_hog.html)). 
 
 There are several parameters to drive the extraction of hog features, and I simply ran a series of experiments to get the best result for my classifier. This exercise is described below.
 
@@ -55,9 +55,9 @@ In addition to HOG features, I also make use of binned color features and histog
 
 Code to train a linear SVM classifier can be found in cell 4.
 
-I augmented the data set with the ([<b>Udacity data</b>]https://github.com/udacity/self-driving-car/tree/master/annotations)). It turned out that this was very helpful in detecting the white car coming into view. 
+I augmented the data set with the ([<b>Udacity data</b>](https://github.com/udacity/self-driving-car/tree/master/annotations)). It turned out augmenting with this data improved detection of the white car coming into view. 
 
-In order to use the Udacity data, I wrote a small python script that read the csv file, extracted the window region of the car, scaled the size to 64x64, and saved it as a *.png file. This provided an addition 72k images. To balance it out, I selected images without cars from the project video and the harder challenge project video of project 4, and extracted the same amount of non-vehicle pictures.
+In order to use the Udacity data, I wrote a small ([<b>python script</b>](https://github.com/ArjaanBuijk/CarND_Vehicle_Detection/blob/master/prep_crowdai_images.py)) that reads the csv file, extracted the window region of the car, scaled the size to 64x64, and saved it as a *.png file. This provided an addition 72k images. To balance it out, I selected images without cars from the project video and the harder challenge project video of project 4, and extracted the same amount of non-vehicle pictures.
 
 When training the SVM with all the images, my computer ran into a memory limit. I reduced the number of training samples to 35,000 for vehicles and 35,000 for non-vehicles.
 
