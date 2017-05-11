@@ -154,19 +154,19 @@ In code cell 7, the heatmap thresholding is implemented, using the following par
 | Parameter | Value | Description |
 | --------- | ----- | ----------- |
 | N_HOT_WINDOWS | 17 | Number of frames for which hot windows are stored for heatmap thresholding |
-| HEAT_THRESHOLD_1 | 4 | Heatmap threshold for individual frames. Pixels that are inside this number of overlapping hot windows are set to 1, all others are set to 0. We end up with a binary thresholded image. |
+| HEAT_THRESHOLD_1 | 4 | Heatmap threshold for individual frames. Pixels that are inside this number of overlapping hot windows, or more, are set to 1, all others are set to 0. We end up with a binary thresholded image. |
 | HEAT_THRESHOLD_2 | 14 | Number of frames that a pixel must be above the individual threshold HEAT_THRESHOLD_1. This does not have to be in sequential frames, but it has to be met within the N_HOT_WINDOWS saved frames. This allows a car detection to fail a maximum of (N_HOT_WINDOWS - HEAT_THRESHOLD_2) times, and we still do not lose track of the car. This threshold step results in a combined, binary thresholded image |
 
-In other words, with these settings, we accept any pixel that was in 4 overlapping hot windows, 14 times in the last 17 frames as belonging to a car.
+In other words, with these settings, we accept any pixel that was in at least 4 overlapping hot windows, 14 times in the last 17 frames.
 
-It also means, that it takes at least 14 frames before a car will be detected, which is quite long, but acceptable. If we would improve the classifier, and reduce the prediction of false positives, we can shorten this number of required frames to accept a car detection.
+It also means, that it takes at least 14 frames before a car will be detected, which is quite long, but acceptable. If we would improve the classifier, and reduce the number of false positive predictions, we can shorten this number of required frames to accept a car detection.
 
 We then pass the combined, binary thresholded image into the <b>label</b> function of the scipy.ndimage.measurements package, to determine the bounding boxes that must be drawn on the image.
 
 And the final step is to draw the bounding boxes and return the image. 
 
 
-To visualize how the thresholding is working, please look at the full sequence of images produced by the very last code cell in the Jupyter notebook ([HTML version](https://github.com/ArjaanBuijk/CarND_Vehicle_Detection/blob/master/P5.html)). In that code cell, I run the logic on frames 741-760, and the following can be seen in the key frames 741 and 754:
+To visualize how the thresholding is working, please look at the full sequence of images produced by the very last code cell in the Jupyter notebook ([HTML version](https://github.com/ArjaanBuijk/CarND_Vehicle_Detection/blob/master/P5.html)). In that code cell, I run the logic as a visualization demo on the frames 741-760, and the following happens in the key frames 741 and 754:
 
 <b>Frame 741: start of visualization demo</b> 
 
