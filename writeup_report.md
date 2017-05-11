@@ -47,48 +47,142 @@ There are several parameters to drive the extraction of hog features, and I simp
 
 The functions in code cell 3 take inputs to try out all variations of color space, orientations, pixels_per_cell and cells_per_block.
 
-In addition to HOG features, I also make use of binned color features and histograms of the color channels.
+The HOG features can be visualized, as shown here for a car and a non-car images from the training set, where the HOG features are shown for each color channel of the YCrCb color space. The car image is from the [<b>Udacity data set</b>](https://github.com/udacity/self-driving-car/tree/master/annotations, which I used to augment the provided images of the project.
+
+<b>Example of HOG Features for a Car Image</b>
+
+Original Image: ![track1](https://github.com/ArjaanBuijk/CarND_Vehicle_Detection/blob/master/images/car-image0000.png?raw=true)
+
+![track1](https://github.com/ArjaanBuijk/CarND_Vehicle_Detection/blob/master/images/hog-image-car-1.JPG?raw=true)
+
+<b>Example of HOG Features for a Not Car Image</b>
+
+Original Image: ![track1](https://github.com/ArjaanBuijk/CarND_Vehicle_Detection/blob/master/images/not-car-image0000.png?raw=true)
+
+![track1](https://github.com/ArjaanBuijk/CarND_Vehicle_Detection/blob/master/images/hog-image-not-car-1.JPG?raw=true)
+
+In addition to HOG features, I also make use of binned color features and histograms of the color channels. All these features are combined into one big feature representing a training image.
+
+In the end, we get a large matrix of features, one row for each training image, and to avoid that a certain feature (HOG, binned color or histogram) is dominating all the others, the features are normalized. This is done with the StandardScalar function of the sklearn package.
+
 
 ---
 
 # 4. Training of the classifier & selection of color space
 
-Code to train a linear SVM classifier can be found in cell 4.
+Code to train a classifier can be found in cell 4.
 
 I augmented the data set with the ([<b>Udacity data</b>](https://github.com/udacity/self-driving-car/tree/master/annotations)). It turned out augmenting with this data improved detection of the white car coming into view. 
 
 In order to use the Udacity data, I wrote a small ([<b>python script</b>](https://github.com/ArjaanBuijk/CarND_Vehicle_Detection/blob/master/prep_crowdai_images.py)) that reads the csv file, extracted the window region of the car, scaled the size to 64x64, and saved it as a *.png file. This provided an addition 72k images. To balance it out, I selected images without cars from the project video and the harder challenge project video of project 4, and extracted the same amount of non-vehicle pictures.
 
-When training the SVM with all the images, my computer ran into a memory limit. I reduced the number of training samples to 35,000 for vehicles and 35,000 for non-vehicles.
+When training the classifier with all the images, my computer ran into a memory limit. I reduced the number of training samples to 35,000 for vehicles and 35,000 for non-vehicles.
 
-After extracting all the features for cars and notcars, I normalize them using the StandardScalar module of the sklearn package.
+I tested two classifiers:
 
-I had initially selected the HLS color space, because it gave the highest accuracy during training & testing of the SVM on the training set. However, during use on the project video, it had a tendency to think that the yellow lines in the picture are cars. This is when I switched to the YCrCb color space, and a lot of the false positives went away.
+1. Linear SVM
+2. MLP
 
-I kept 20% of the total training data as test data, and the accuracy of the trained SVM was 98.8 % when applied to this test data. 
+The choice what classifier to use can be set in code cell 1, with the USE_SVC or USE_MLP flag.
+
+I kept 20% of the total training data as test data, and used the rest as training data. 
 
 Reading the images and training the SVM takes a bit of time, about 15-20 minutes total. So, I cached the trained model, and the scaler information to disk, using pickle.
 
-In the submitted notebook, the flag TRAIN_SVC is set to False, so it will not train the SVM, but read the data from the saved pickle files. 
+In the submitted notebook, the flag TRAIN_SVC is set to False, so it will not train the SVM, but read the data from the saved pickle files.
+
+Both classifiers gave similar results. I ended up selecting the SVM because it performed better on detecting the white car in some of the later images. I believe though that either classifier is a good choice.
+
+<b> Selecting parameters for the SVM Classifier</b> 
+
+I had initially selected the HLS color space, because it gave the highest accuracy during training & testing of the SVM on the training set. However, during use on the project video, it had a tendency to think that the yellow lines in the picture are cars. This is when I switched to the YCrCb color space, and many of the false positives went away.
+
+The parameters I used are:
+
+| parameter | value |
+| --------- | ----- |
+| color_space     | 'YCrCb'|   
+| hog_channel     | 'ALL'  |   
+| orient          | 9       |       
+| pix_per_cell    | 8       | 
+| cell_per_block  | 2      |
+| spatial_size    | (32, 32)| 
+| hist_bins       | 32      |    
+
+
+
+<b> Accuracy of the trained SVM Classifier</b>
+
+The accuracy of the trained SVM was <b>98.72 %</b>.
+ 
 
 
 # 5. Sliding Window Search & Thresholding logic
 
 The sliding window search and the thresholding logic is found in code cell 5, 6, 7 and 8. 
 
-To check what it is doing, it is best to look at the full sequence of images produced by the very last code cell in the Jupyter notebook ([HTML version](https://github.com/ArjaanBuijk/CarND_Vehicle_Detection/blob/master/P5.html))
-
 The  process_image takes an rgb image, and calls the function find_cars, which was mostly taken as is from the course example, with addition of a heatmap thresholding logic to eliminate false positives.
 
 The nice thing about the find_cars function is that it extracts the HOG features for the entire image only once, and then loops over patches equal to the size of a sliding window. This makes the whole process much faster. My first implementation used an actual sliding window search, extracting the HOG features each time for the window, and the find_cars implementation was about 6x faster!
 
-I tried different scales and different cells_per_step (which controls the overlap of patches), and settled on a scale of 1.5 and a cell_per_step of 2. That was giving me the best result and I could filter out almost every remaining false positive with a heatmap thresholding.
+I tried different scales of search windows and different cells_per_step (which controls the overlap of the search windows), and settled on the following.
 
-The thresholding I created uses a class to store the hot-windows of the current and 3 previous images. I am storing the hot-windows of 4 images, and each time a new image is stored, the oldest one is pushed out automatically. I am using a deque to accomplish this.
+<b> Selected regions, scales and overlaps for HOG feature extraction</b>
 
-In code cell 7, the thresholding is done. I calculate the heatmap for the current and 3 previous images. (Note, this can be optimized, but I leave this for later...). Then, I create a combined binary threshold from these heatmaps, by requiring that a pixel must have a value larger than a threshold in each subsequent heatmap. I put the threshold to 1. This  means that if a pixel is part of two overlapping car-windows, for 4 images in a row, it is accepted.
+| What | Values |
+| ---- | -----  |
+| cells_per_step | 1 |
+| region 1: ystart, ystop, scale | 395, 550, 1.25 |
+| region 2: ystart, ystop, scale | 500, 656, 1.50 |
 
-After heatmap thresholding, the boxes to draw are found using the label function of the scipy.ndimage.measurements package.
+<b>Decision Thresholding</b>
+
+To deal with the false positives, I tried using a threshold on the decision function of the SVC, with the clf.decision_function capability. This function returns a confidence score based on how far away the sample is from the decision boundary. This way, low confidence predictions can be filtered out, which in theory should filter away false positives and leave the true positives in place. 
+
+After some tests however, it did not me eliminate false positives while leaving in place the true positives. In some images, the SVC was quite confident sometimes in predicting cars for road patches, and trying to filter them out using this decision thresholding approach worked for that particular image, but it resulted in filtering away true positives in other images.
+
+
+<b>Heatmap Thresholding</b>
+
+
+In code cell 7, the heatmap thresholding is implemented, using the following parameters:
+
+
+| Parameter | Value | Description |
+| --------- | ----- | ----------- |
+| N_HOT_WINDOWS | 15 | Number of frames for which hot windows are stored for heatmap thresholding |
+| HEAT_THRESHOLD_1 | 4 | Heatmap threshold for individual frames. Pixels that are inside this number of overlapping hot windows are set to 1, all others are set to 0. We end up with a binary thresholded image. |
+| HEAT_THRESHOLD_2 | 12 | Number of frames that a pixel must be above the individual threshold HEAT_THRESHOLD_1. This does not have to be sequential, but it has to be for the saved frames. This allows a car detection to fail within (N_HOT_WINDOWS - HEAT_THRESHOLD_2) times, and not lose it. We end up with a combined, binary thresholded image |
+
+In other words, with these settings, we accept any pixel that was in a hot window 13 times in the last 15 frames as belonging to a car.
+
+We then pass the combined, binary thresholded image into the <b>label</b> function of the scipy.ndimage.measurements package, to determine the bounding boxes that must be drawn on the image.
+
+And the final step is to draw the bounding boxes and return the image. 
+
+
+To visualize how the thresholding is working, please look at the full sequence of images produced by the very last code cell in the Jupyter notebook ([HTML version](https://github.com/ArjaanBuijk/CarND_Vehicle_Detection/blob/master/P5.html)). In that code cell, I run the logic on frames 741-760, and the following can be seen:
+
+<b>Frame 741:</b> 
+
+
+- SVM detects hot-windows for both cars and a few false positives
+- Binary Heatmap Threshold for this image eliminates some of the false positives, but not all
+- History of heatmaps not yet build up, so combined binary heatmap threshold is still completely empty
+- No Bounding Boxes drawn yet on image
+ 
+.... Insert Images...
+
+<b>Frame 752:</b>
+
+With the threshold settings chosen, it takes 13 frames before the combined binary threshold accepts a selection as a true positive for a car, and the first bounding box is drawn.
+
+- SVM detects hot-windows for both cars and a few false positives
+- Binary Heatmap Threshold for this image eliminates some of the false positives, but not all
+- History of heatmaps now fully build up, and combined binary heatmap threshold eliminates all false positives, while leaving the true positives for the cars in place
+- The Bounding Boxes are drawn on the image
+
+.... Insert Images...
 
  
 
@@ -96,15 +190,13 @@ After heatmap thresholding, the boxes to draw are found using the label function
 
 The end result can be summarized as follows:
 
-- The classifier is able to detect the black car very good. 
-- The classifier detects the white car less robustly, but still quite good.
-- The classifier does detect false positives, but the heatmap thresholding over several frames filters out most of them.
-- Every now and then the filtering does not fully work, and for a couple frames some false positives result in a flicker of a falsely detected car window.
+- The classifier is able to detect both the white & black car very good. 
+- The classifier does detect a significant amount of false positives, and the heatmap thresholding over several frames filters is very important to get rid of those.
 
 
-The main opportunities I see to make it even more robust against detection of false positives are:
+Even though it works well for this video, there is definitely a lot of room for improvement. I feel there are way too many false positives and rely too heavily on heatmap thresholding which is brittle. I do not expect the current logic to work well on other cases without having to do significant work in fine-tuning the classifier and the thresholding.
 
-- Further improve the classifier. Probably by using more or better training data for non-vehicles.
-- Further improve the heatmap thresholding. 
+Concretely, to improve it, I would focus on:
 
-And lastly, there is room for improvement to detect a larger bounding box for the full vehicle, while avoiding false positives.
+- Optimize the classifier. 
+- Use more or better training data, especially for non-vehicles.
